@@ -1,18 +1,19 @@
 /**
-  Temperature Control - S.Volkov <https://github.com/svolkov>
-  SNMP Agent running in Arduino Uno
-  Version 1.0
-  Sensor DS18B20
-  SNMP Agent Library based on Agentuino and modifies by S.Volkov
-  Copyright 2010 Eric C. Gionet <lavco_eg@hotmail.com>
+  SNMP Agent running in Arduino Uno with Ethernet Shield W5100 for
+  Temperature Control - S.Volkov <https://github.com/sv99/temp-snmp-pio>
 
+  Version 0.1
+
+  SNMP Agent Library based on Agentuino and modifies by S.Volkov
+  Copyright 2022 S.Volkov <sv99@inbox.ru>
 */
+
 #include <Ethernet.h>
 #include <Agentuino.h>
 #include <microDS18B20.h>
 
 // name and address
-#ifdef DEVICE1
+#ifdef RENTGENA
 // device 1 - Rentgena
 static char locName[20]  = "ren_temp_sensor";
 static uint8_t mac[]     = { 0xDE, 0xAD, 0xBE, 0xEF, 0xEE, 0xD0 };
@@ -24,7 +25,7 @@ static uint8_t subnet[]  = { 255, 255, 255, 0 };
 // device 2 - Bassein
 static char locName[20]  = "bas_temp_sensor";
 static uint8_t mac[]     = { 0xDE, 0xAD, 0xBE, 0xEF, 0xEE, 0xD1 };
-static uint8_t ip[]      = { 192, 168, 1, 11 };
+static uint8_t ip[]      = { 192, 168, 1, 12 };
 static uint8_t dns[]     = { 192, 168, 1, 233 };
 static uint8_t gateway[] = { 192, 168, 1, 202 };
 static uint8_t subnet[]  = { 255, 255, 255, 0 };
@@ -54,6 +55,28 @@ static char upTimeString[20] = ""; // uptime buffer
 static char strTemp[20]      = ""; // temperature buffer
 static uint8_t sensor_addr[8];
 //static uint8_t sensor_fixed[] = {0x28, 0x58, 0xAB, 0x1D, 0x0, 0x0, 0x0, 0x77};
+
+void print_hex(uint8_t buf[], uint8_t len, const char *prefix) {
+    Serial.print(prefix);
+    Serial.print('{');
+    for (uint8_t i = 0; i < len; i++) {
+        Serial.print("0x");
+        Serial.print(buf[i], HEX);  // Выводим адрес
+        if (i < len - 1) Serial.print(", ");
+    }
+    Serial.println('}');
+}
+
+void print_dec(uint8_t buf[], uint8_t len, const char *prefix, bool ln = true) {
+    Serial.print(prefix);
+    for (uint8_t i = 0; i < len; i++) {
+        Serial.print(buf[i]);  // Выводим адрес
+        if (i < len - 1) Serial.print(".");
+    }
+    if (ln) {
+        Serial.println();
+    }
+}
 
 void pduReceived()
 {
@@ -104,6 +127,10 @@ void pduReceived()
                     while (*val == ' ') {
                         val++;
                     }
+                    // print log
+                    print_dec(sensor_addr, 8, "1.3.6.1.2.1.6540.", false);
+                    Serial.print(": ");
+                    Serial.println(val);
                     status = pdu.VALUE.encode(SNMP_SYNTAX_OCTETS, val);
                 } else {
                     pdu.error = SNMP_ERR_BAD_VALUE;
@@ -123,26 +150,6 @@ void pduReceived()
     }
 
     Agentuino.freePdu(&pdu);
-}
-
-void print_hex(uint8_t buf[], uint8_t len, const char *prefix) {
-    Serial.print(prefix);
-    Serial.print('{');
-    for (uint8_t i = 0; i < len; i++) {
-        Serial.print("0x");
-        Serial.print(buf[i], HEX);  // Выводим адрес
-        if (i < len - 1) Serial.print(", ");
-    }
-    Serial.println('}');
-}
-
-void print_dec(uint8_t buf[], uint8_t len, const char *prefix) {
-    Serial.print(prefix);
-    for (uint8_t i = 0; i < len; i++) {
-        Serial.print(buf[i]);  // Выводим адрес
-        if (i < len - 1) Serial.print(".");
-    }
-    Serial.println();
 }
 
 void setup()
